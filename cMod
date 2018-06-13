@@ -1,9 +1,10 @@
 """
 mod: `cMod` -- Create Models
 ===========================================================
--- module:: cMod
+--  module :: cMod
    :platform: Windows
    :synopsis: creates a keras model from given input file.
+   :returns:  compiled model based on passed-in parameters
 -- moduleauthor:: Agustin Vallejo
   
 Requirements::
@@ -19,7 +20,7 @@ Requirements::
         and do NOT separate with spaces, ONLY commas.
         Columns are separated with tabs.]
         type	featureMaps/Neurons/Filters/activation	kernelSize	inputShape	strides
-
+        use 'myM.txt' in repository as example
         e.g.:
         Conv2D	20	3,3	1,28,28	2,2
         Activ	sigmoid
@@ -30,44 +31,30 @@ Requirements::
         Activ	sigmoid
         Dense	100
         Dense	10
-    3.  The layer names are different for ease.
+    3.  The layer names are different for ease [Can easily be modified in-code].
         Convolutional2D -> Conv2D
         Activation -> Activ
         AveragePooling2D -> Avg2DP
         Flatten -> Flatten
         Dense -> Dense
 """
+import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Activation
 from keras.layers import Dropout
 from keras.layers import Flatten
 from keras.layers.convolutional import Conv2D
-from keras.layers.convolutional import MaxPooling2D
 from keras.layers.convolutional import AveragePooling2D
 from keras import backend as K
 K.set_image_dim_ordering('th')
 
-XTrain, yTrain, XTest, yTest, numClasses = load("mnist")
-
-#ADD DROPOUT float()
-
-#returns model from a text file of layers, has defaults to most common
+#returns model from a text file of layers, has defaults to most used (in program)
 def createModel(filename, lossF = 'categorical_crossentropy', opt = 'adam', met = ['accuracy']):
+    #models we work on are all Sequential(), not Model()
     model = Sequential()
 
-    '''model.add(Conv2D(filters = 20, kernel_size = (3, 3), input_shape = (1, 28, 28), strides = (2, 2)))
-    model.add(Activation('sigmoid'))
-    model.add(Conv2D(filters = 10, kernel_size = (2, 2), strides = (1,1)))
-    model.add(Activation('sigmoid'))
-    model.add(AveragePooling2D(pool_size = (2, 2)))
-    model.add(Flatten())
-    model.add(Activation('sigmoid'))
-    model.add(Dense(100))
-    model.add(Dense(10))
-    model.add(Activation('softmax'))
-    '''
-    
+    #used to keep track of convolutional layers, 1st one has input size [other layers as first may cause error]
     conv = 0
 
     #place text file into list of lists
@@ -79,7 +66,7 @@ def createModel(filename, lossF = 'categorical_crossentropy', opt = 'adam', met 
                 cLine.append(word)
             layers.append(cLine)
 
-    #add the layers based off the text file
+    #add layers based off the text file by going through list of lists^
     for layer in layers:
         layer = np.array(layer)
         
@@ -89,28 +76,27 @@ def createModel(filename, lossF = 'categorical_crossentropy', opt = 'adam', met 
             x,y = layer[2].split(",")
             kS = [int(x), int(y)]
             kS = tuple(kS)
-            #print("Doing conv: " + str(conv))
-            #if input shape already input
+            
+            #if input shape needs to be input
             if conv < 2:
                 #create tuple for the input shape
                 x,y,z = layer[3].split(",")
                 iS = [int(x), int(y), int(z)]
                 iS = tuple(iS)
+            #if strides needs to be input and 1st conv 
             if len(layer) > 4 and conv == 1:
                 x,y = layer[4].split(",")
                 s = [int(x), int(y)]
                 s = tuple(s)
-                #print("Doing the filters, ks, is, strides")
                 model.add(Conv2D(filters=int(layer[1]),kernel_size=kS,input_shape=iS, strides=s))
                 continue
+            #if strides needs to be input and 1st conv already occured
             if conv > 1 and len(layer) > 3:
                 x,y = layer[3].split(",")
                 s = [int(x), int(y)]
                 s = tuple(s)
-                #print("Doing the filters, ks, strides")
                 model.add(Conv2D(filters=int(layer[1]),kernel_size=kS, strides=s))
                 continue
-            #print("Doing the filters, ks")
             model.add(Conv2D(filters=int(layer[1]),kernel_size=kS))
         elif(layer[0] == 'Activ'):
             model.add(Activation(layer[1]))
@@ -124,20 +110,63 @@ def createModel(filename, lossF = 'categorical_crossentropy', opt = 'adam', met 
             model.add(Flatten())
         elif(layer[0] == 'Dense'):
             model.add(Dense(int(layer[1])))
+        elif(layer[0] == 'Drop'):
+            model.add(Dropout(float(layer[1])))
         else:
             print("[ERROR] Add functionality for: {s}".format(layer[0]))
+            return 0
     model.compile(loss = lossF, optimizer = opt, metrics = met)
 
     return model
-    
-model = createModel(filename='myM.txt')
-epochs = 1
 
-print(model.summary())
-
-#fit model and print results
-model.fit(XTrain, yTrain, validation_data = (XTest, yTest), epochs = epochs, batch_size = 200)
-score = model.evaluate(XTest, yTest, verbose = 0)
-print("ACCURACY: %.2f%%" % (score[1] * 100))
-
-#SAVE AND LOAD?
+''' layers from regular model.add, Accuracies after 10 epochs: 89.67%, 89.66%, 89.66%
+Layer (type)                 Output Shape              Param #
+=================================================================
+conv2d_1 (Conv2D)            (None, 20, 13, 13)        200
+_________________________________________________________________
+activation_1 (Activation)    (None, 20, 13, 13)        0
+_________________________________________________________________
+conv2d_2 (Conv2D)            (None, 10, 12, 12)        810
+_________________________________________________________________
+activation_2 (Activation)    (None, 10, 12, 12)        0
+_________________________________________________________________
+average_pooling2d_1 (Average (None, 10, 6, 6)          0
+_________________________________________________________________
+flatten_1 (Flatten)          (None, 360)               0
+_________________________________________________________________
+activation_3 (Activation)    (None, 360)               0
+_________________________________________________________________
+dense_1 (Dense)              (None, 100)               36100
+_________________________________________________________________
+dense_2 (Dense)              (None, 10)                1010
+_________________________________________________________________
+activation_4 (Activation)    (None, 10)                0
+=================================================================
+'''
+'''layers from cMod: Accuracies: 92.3%, 92.29%, 92.33%,
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #
+=================================================================
+conv2d_1 (Conv2D)            (None, 20, 13, 13)        200
+_________________________________________________________________
+activation_1 (Activation)    (None, 20, 13, 13)        0
+_________________________________________________________________
+conv2d_2 (Conv2D)            (None, 10, 12, 12)        810
+_________________________________________________________________
+activation_2 (Activation)    (None, 10, 12, 12)        0
+_________________________________________________________________
+conv2d_3 (Conv2D)            (None, 10, 12, 12)        110
+_________________________________________________________________
+activation_3 (Activation)    (None, 10, 12, 12)        0
+_________________________________________________________________
+average_pooling2d_1 (Average (None, 10, 6, 6)          0
+_________________________________________________________________
+flatten_1 (Flatten)          (None, 360)               0
+_________________________________________________________________
+dense_1 (Dense)              (None, 100)               36100
+_________________________________________________________________
+dense_2 (Dense)              (None, 10)                1010
+_________________________________________________________________
+activation_4 (Activation)    (None, 10)                0
+=================================================================
+'''
