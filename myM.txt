@@ -1,0 +1,13 @@
+Conv2D	20	3,3	1,28,28	2,2
+Activ	sigmoid
+Drop	.2
+Conv2D	10	2,2	1,1
+Activ	sigmoid
+Conv2D	10	1,1
+Activ	sigmoid
+Drop	.2
+Avg2DP	2,2
+Flatten
+Dense	100
+Dense	10
+Activ	softmax
