@@ -152,9 +152,6 @@ def createModel(filename, lossF = 'categorical_crossentropy', opt = 'adam', met 
 
     return model
 
-model = createModel("myM.txt")
-print(model.summary())
-
 ''' layers from regular model.add, Accuracies after 10 epochs: 89.67%, 89.66%, 89.66%
 Layer (type)                 Output Shape              Param #
 =================================================================
