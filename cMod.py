@@ -22,7 +22,7 @@ Requirements::
         type	featureMaps/Neurons/Filters/activation	kernelSize	inputShape	strides
         use 'myM.txt' in repository as example
         e.g.:
-        Conv2D	20	3,3	1,28,28	2,2
+        Conv2D	20	3,3	1,28,28	2,2 ini=random_uniform
         Activ	sigmoid
         Conv2D	10	2,2
         Activ	sigmoid
@@ -37,6 +37,10 @@ Requirements::
         AveragePooling2D -> Avg2DP
         Flatten -> Flatten
         Dense -> Dense
+    4.  To add a kernel initializer [currently only for Conv2D and Dense layers],
+        create a new column at the end by tabbing and set the kernel initializer
+        by declaring it through the notation: ini=[kernelIniHere].
+        e.g: Dense    10    ini=lecun_uniform
 """
 import numpy as np
 from keras.models import Sequential
@@ -71,6 +75,14 @@ def createModel(filename, lossF = 'categorical_crossentropy', opt = 'adam', met 
         layer = np.array(layer)
         
         if(layer[0] == 'Conv2D'):
+            #checks if kernel initializer set
+            if 'ini=' in layer[len(layer)-1]:
+                ini = layer[len(layer)-1]
+                ini = ini[4:]
+                print("We have: " + ini)
+            else:
+                ini = False
+            
             conv += 1
             #create tuple for the kernel size
             x,y = layer[2].split(",")
@@ -84,20 +96,35 @@ def createModel(filename, lossF = 'categorical_crossentropy', opt = 'adam', met 
                 iS = [int(x), int(y), int(z)]
                 iS = tuple(iS)
             #if strides needs to be input and 1st conv 
-            if len(layer) > 4 and conv == 1:
+            if len(layer) > 4 and conv == 1 and ini == False:
                 x,y = layer[4].split(",")
                 s = [int(x), int(y)]
                 s = tuple(s)
                 model.add(Conv2D(filters=int(layer[1]),kernel_size=kS,input_shape=iS, strides=s))
                 continue
+            if len(layer) > 4 and conv == 1 and ini != False:
+                x,y = layer[4].split(",")
+                s = [int(x), int(y)]
+                s = tuple(s)
+                model.add(Conv2D(filters=int(layer[1]),kernel_size=kS,input_shape=iS, strides=s, kernel_initializer=ini))
+                continue
             #if strides needs to be input and 1st conv already occured
-            if conv > 1 and len(layer) > 3:
+            if conv > 1 and len(layer) > 3 and ini == False:
                 x,y = layer[3].split(",")
                 s = [int(x), int(y)]
                 s = tuple(s)
                 model.add(Conv2D(filters=int(layer[1]),kernel_size=kS, strides=s))
                 continue
-            model.add(Conv2D(filters=int(layer[1]),kernel_size=kS))
+            if conv > 1 and len(layer) > 4 and ini != False:
+                x,y = layer[3].split(",")
+                s = [int(x), int(y)]
+                s = tuple(s)
+                model.add(Conv2D(filters=int(layer[1]),kernel_size=kS, strides=s, kernel_initializer=ini))
+                continue
+            if ini != False:
+                model.add(Conv2D(filters=int(layer[1]),kernel_size=kS, kernel_initializer=ini))
+            else:
+                model.add(Conv2D(filters=int(layer[1]),kernel_size=kS))
         elif(layer[0] == 'Activ'):
             model.add(Activation(layer[1]))
         elif(layer[0] == 'Avg2DP'):
@@ -109,7 +136,13 @@ def createModel(filename, lossF = 'categorical_crossentropy', opt = 'adam', met 
         elif(layer[0] == 'Flatten'):
             model.add(Flatten())
         elif(layer[0] == 'Dense'):
-            model.add(Dense(int(layer[1])))
+            #checks if kernel initializer set
+            if 'ini=' in layer[len(layer)-1]:
+                ini = layer[len(layer)-1]
+                ini = ini[4:]
+                model.add(Dense(int(layer[1]), kernel_initializer=ini))
+            else:
+                model.add(Dense(int(layer[1])))
         elif(layer[0] == 'Drop'):
             model.add(Dropout(float(layer[1])))
         else:
@@ -118,6 +151,9 @@ def createModel(filename, lossF = 'categorical_crossentropy', opt = 'adam', met 
     model.compile(loss = lossF, optimizer = opt, metrics = met)
 
     return model
+
+model = createModel("myM.txt")
+print(model.summary())
 
 ''' layers from regular model.add, Accuracies after 10 epochs: 89.67%, 89.66%, 89.66%
 Layer (type)                 Output Shape              Param #
