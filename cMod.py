@@ -41,6 +41,9 @@ Requirements::
         create a new column at the end by tabbing and set the kernel initializer
         by declaring it through the notation: ini=[kernelIniHere].
         e.g: Dense    10    ini=lecun_uniform
+    5.  When having Dense as the first layer, have the input_dimensions as idm=
+        [theDimensionHere]. It currently only works for a single digit, so tuple
+        functionality needs to be added [if we need it].
 """
 import numpy as np
 from keras.models import Sequential
@@ -136,11 +139,21 @@ def createModel(filename, lossF = 'categorical_crossentropy', opt = 'adam', met 
         elif(layer[0] == 'Flatten'):
             model.add(Flatten())
         elif(layer[0] == 'Dense'):
-            #checks if kernel initializer set
-            if 'ini=' in layer[len(layer)-1]:
+            #checks if kernel initializer set ONLY
+            if 'ini=' in layer[len(layer)-1] and 'idm' not in layer[len(layer)-2]:
                 ini = layer[len(layer)-1]
                 ini = ini[4:]
                 model.add(Dense(int(layer[1]), kernel_initializer=ini))
+            elif 'idm' in layer[len(layer)-1]:#input dim is last
+                idm = layer[len(layer)-1]
+                idm = idm[4:]
+                model.add(Dense(int(layer[1]), input_dim=int(idm)))
+            elif 'idm' in layer[len(layer)-2]:#if input and kernel initializer set
+                idm = layer[len(layer)-2]
+                idm = idm[4:]
+                ini = layer[len(layer)-1]
+                ini = ini[4:]
+                model.add(Dense(int(layer[1]), input_dim=int(idm), kernel_initializer=ini))
             else:
                 model.add(Dense(int(layer[1])))
         elif(layer[0] == 'Drop'):
