@@ -35,6 +35,7 @@ Requirements::
         Convolutional2D -> Conv2D
         Activation -> Activ
         AveragePooling2D -> Avg2DP
+        MaxPooling2d -> Max2DP
         Flatten -> Flatten
         Dense -> Dense
     4.  To add a kernel initializer [currently only for Conv2D and Dense layers],
@@ -53,6 +54,7 @@ from keras.layers import Dropout
 from keras.layers import Flatten
 from keras.layers.convolutional import Conv2D
 from keras.layers.convolutional import AveragePooling2D
+from keras.layers.convolutional import MaxPooling2D
 from keras import backend as K
 K.set_image_dim_ordering('th')
 
@@ -82,7 +84,6 @@ def createModel(filename, lossF = 'categorical_crossentropy', opt = 'adam', met 
             if 'ini=' in layer[len(layer)-1]:
                 ini = layer[len(layer)-1]
                 ini = ini[4:]
-                print("We have: " + ini)
             else:
                 ini = False
             
@@ -93,6 +94,7 @@ def createModel(filename, lossF = 'categorical_crossentropy', opt = 'adam', met 
             kS = tuple(kS)
             
             #if input shape needs to be input
+            iS = False
             if conv < 2:
                 #create tuple for the input shape
                 x,y,z = layer[3].split(",")
@@ -126,6 +128,8 @@ def createModel(filename, lossF = 'categorical_crossentropy', opt = 'adam', met 
                 continue
             if ini != False:
                 model.add(Conv2D(filters=int(layer[1]),kernel_size=kS, kernel_initializer=ini))
+            elif iS != False:
+                model.add(Conv2D(filters=int(layer[1]),kernel_size=kS, input_shape=iS))
             else:
                 model.add(Conv2D(filters=int(layer[1]),kernel_size=kS))
         elif(layer[0] == 'Activ'):
@@ -136,6 +140,12 @@ def createModel(filename, lossF = 'categorical_crossentropy', opt = 'adam', met 
             pS = [int(x), int(y)]
             pS = tuple(pS)
             model.add(AveragePooling2D(pool_size=pS))
+        elif(layer[0] == 'Max2DP'):
+            #create tuple for poolsize
+            x,y = layer[1].split(",")
+            pS = [int(x), int(y)]
+            pS = tuple(pS)
+            model.add(MaxPooling2D(pool_size=pS))
         elif(layer[0] == 'Flatten'):
             model.add(Flatten())
         elif(layer[0] == 'Dense'):
