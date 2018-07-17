@@ -20,7 +20,6 @@ mod: `walkThrough` -- Walk through a directory's
 import os
 import sys
 import cMod
-#from keras.models import model_from_json
 from keras.datasets import mnist
 import keras as K
 import functions
@@ -40,9 +39,7 @@ def loadAndRunModel(pathName):
 print("Please enter the path name to the folders of polynomial text models");
 print(r"An example pathname is: C:\Users\yourName\Desktop\foldereContainingPolys")
 
-path = r"C:\Users\Stin\Desktop\REU\Aye"
-#r"C:\Python36\projects\kerasCode"
-'''input()'''
+path = input()
 
 while( not os.path.isdir(path)):
     print("ERROR: \'" + path + "\' is not a valid path!")
@@ -50,41 +47,58 @@ while( not os.path.isdir(path)):
     path = input()
 
 #load mnist dataset
-# load and get data info 
 (XTrain, yTrain), (XTest, yTest) = mnist.load_data()
 numPixels = XTrain.shape[1] * XTrain.shape[2]
 XTrain = XTrain.reshape(XTrain.shape[0], numPixels).astype('float32')
 XTest = XTest.reshape(XTest.shape[0], numPixels).astype('float32')
-#XTrain = XTrain / 255
-#XTest = XTest / 255
 yTrain = K.utils.to_categorical(yTrain)
 yTest = K.utils.to_categorical(yTest)
 numClasses = yTest.shape[1]
 
 #set number of epochs
-epochs = 1
+epochs = 50
 
-#goes through ReLu folder and saves model weights
-reluPath = os.path.join(path, 'ReLu')
-for filename in os.listdir(reluPath):
-    if filename.endswith(".txt"):
-        print("Working on file " + filename)
-        thePath = os.path.join(reluPath, filename)
-        model = loadAndRunModel(thePath)
-        
-        #save the network weights
-        model.save_weights(thePath[:-4] + "Weights.h5")
+ans = "ah"
+
+print("Answer Y if this is the first time running the program")
+while ans not in "YyNn":
+    print("Do you want to reset the architecture weights? Y or N")
+    ans = input()
+    if ans == "N" or ans == "n":
+        break;
+    #goes through ReLu folder and saves model weights
+    reluPath = os.path.join(path, 'ReLu')
+    for filename in os.listdir(reluPath):
+        if filename.endswith(".txt"):
+            print("Working on file " + filename)
+            thePath = os.path.join(reluPath, filename)
+            model = loadAndRunModel(thePath)
+            
+            #save the network weights
+            model.save_weights(thePath[:-4] + "Weights.h5")
+
+epochs = 5
 
 for folder, subs, files in os.walk(path):#get item for each directory in tree
-    for filename in files:
-        #make sure filetype is .txt
-        if(filename.endswith('.txt')):
-            print("Working on file " + filename)
-            thePath = os.path.join(folder, filename)
-            model = loadAndRunModel(thePath)
+    #open file to write results to
+    outputFile = os.path.join(path, folder, "results.txt")
 
-            '''#save model in model directory
-            model_json = model.to_json()
-            with open(thePath[:-4] + ".json", "w") as json_file:
-                #save the model
-                json_file.write(model_json)'''
+    f = open(outputFile, "a+")
+    for filename in files:
+        #make sure filetype is .txt and is not results
+        if(filename.endswith('.txt')) and "arch" in filename:
+            thePath = os.path.join(folder, filename)
+            model = cMod.createModel(thePath);
+    
+            #print summary (i/o delay)
+            #print(model.summary())
+
+            #find relu weights file to load from
+            arch = filename.split(r"_")
+            weightPath = os.path.join(path, "ReLu", arch[0] + "_ReLUWeights.h5")
+            model.load_weights(weightPath)
+
+            #fit model and print results
+            model.fit(XTrain, yTrain, validation_data = (XTest, yTest), epochs = epochs, batch_size = 200, verbose = 0)
+            score = model.evaluate(XTest, yTest, verbose = 0)
+            f.write(arch[1][:-4] + " accuracy: %.2f%%\n" % (score[1] * 100))
