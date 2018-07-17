@@ -13,7 +13,6 @@ mod: `walkThrough` -- Walk through a directory's
    :synopsis: finds all files in a dir and runs keras models
 -- moduleauthor:: Agustin Vallejo
 '''
-
 # credit to: https://stackoverflow.com/questions/2212643/python-recursive-folder-read
 # and https://stackoverflow.com/questions/8933237/how-to-find-if-directory-exists-in-python
 # and https://machinelearningmastery.com/save-load-keras-deep-learning-models/
@@ -22,12 +21,13 @@ import sys
 import cMod
 import load
 from keras.models import model_from_json
+import polynomials
 
 print("Please enter the path name to the folders of polynomial text models");
 print(r"An example pathname is: C:\Users\yourName\Desktop\foldereContainingPolys")
 
 path = r"C:\Python36\projects\kerasCode"
-#r"C:\Users\Stin\Desktop\REU"
+#r"C:\Users\Stin\Desktop\REU\Ehsan Project"
 '''input()'''
 
 while( not os.path.isdir(path)):
