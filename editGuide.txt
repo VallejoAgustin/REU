@@ -1,5 +1,6 @@
 palisade guide adjustments:
   [is from the README upon palisade installation]
+  after first opening up vm, close from VBox and give more cores/ram
   after cloning (step 5):
   do:
     sudo apt-get update (may need to do twice if some failed)
