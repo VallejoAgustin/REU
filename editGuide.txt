@@ -1,0 +1,7 @@
+palisade guide adjustments:
+  [is from the README upon palisade installation]
+  after cloning (step 5):
+  do:
+    sudo apt-get update (may need to do twice if some failed)
+    sudo apt-get upgrade (will take a while)
+    sudo apt-get install lzip m4 texlive-latex-base git g++ bison flex xclip default-jdk
